@@ -8,12 +8,13 @@
 #
 
 library(shiny)
+library(ggplot2)
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(
 
     # Application title
-    titlePanel("Old Faithful Geyser Data"),
+    titlePanel("Linear Regression"),
 
     # Sidebar with a slider input for number of bins 
     sidebarLayout(
@@ -54,7 +55,9 @@ ui <- fluidPage(
             radioButtons("disp", "Display",
                          choices = c(Head = "head",
                                      All = "all"),
-                         selected = "head")
+                         selected = "head"),
+            
+            actionButton("go","Model Data"),
         ),
 
         # Show a plot of the generated distribution
@@ -79,6 +82,13 @@ server <- function(input, output) {
         return(df)
     })
     
+    modeled_input <- eventReactive(input$go, {
+        model = lm(formula = y ~x,
+                   data = dataInput())
+        print(model)
+        return(model)    
+    })
+    
     # output$distPlot <- renderPlot({
     #     # generate bins based on input$bins from ui.R
     #     x    <- faithful[, 2]
@@ -90,11 +100,35 @@ server <- function(input, output) {
     # 
     
     output$distPlot <- renderPlot({
-        plot(dataInput()$x,dataInput()$y)
+        # plot(dataInput()$x,dataInput()$y)
+        ggplot() +
+            geom_point(aes(x = dataInput()$x, y = dataInput()$y))
     })
     
-    output$lmtPlot <- renderPlot({
-        plot(dataInput()$x,dataInput()$y)
+    output$lmPlot <- renderPlot({
+        # plot(dataInput()$x,dataInput()$y)
+        
+        model_summary <- summary(modeled_input())
+        slope_value <- model_summary$coefficients[2,1]
+        Label1 = paste("slope =", slope_value)
+        
+        intercept_value <- model_summary$coefficients[1,1]
+        Label2 = paste("b =", intercept_value)
+        
+        R_squared <- model_summary$r.squared
+        Label3 = paste("R squared =", R_squared)
+        
+        ggplot() +
+        geom_point(aes(x = dataInput()$x, y = dataInput()$y),
+                   color = 'black') +
+        geom_line(aes(x = dataInput()$x, y = predict(modeled_input(), newdata = dataInput())),
+                  color = 'red') +
+        ggtitle('Modeled Values from Uploaded Data File') +
+        xlab('X Values in Uploaded Data File') +
+        ylab('Y Values in Uploaded Data File') +
+        annotate("text", x = 20, y = 6, label = Label1) +
+        annotate("text", x = 20, y = 5, label = Label2) +
+        annotate("text", x = 20, y = 4, label = Label3)
     })
     
     
